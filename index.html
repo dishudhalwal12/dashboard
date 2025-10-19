@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Krishna's Kitchen Command Center</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'krishna-bg': '#000000',
+            'krishna-surface': '#111111',
+            'krishna-surface-2': '#1A1A1A',
+            'krishna-border': '#27272A',
+            'krishna-text-primary': '#F4F4F5',
+            'krishna-text-secondary': '#A1A1AA',
+            'krishna-text-tertiary': '#71717A',
+            'krishna-brand': '#FBBF24',
+            'status-pending': '#FBBF24',
+            'status-preparing': '#3B82F6',
+            'status-ready': '#10B981',
+            'status-completed': '#6B7280',
+            'profit': '#10B981',
+            'loss': '#EF4444',
+          },
+           animation: {
+            'fade-in': 'fadeIn 0.5s ease-out forwards',
+            'slide-in': 'slideIn 0.5s ease-out forwards',
+            'pulse-once': 'pulse 1.5s ease-in-out',
+          },
+          keyframes: {
+            fadeIn: {
+              'from': { opacity: 0 },
+              'to': { opacity: 1 },
+            },
+            slideIn: {
+              'from': { opacity: 0, transform: 'translateY(10px)' },
+              'to': { opacity: 1, transform: 'translateY(0)' },
+            },
+            pulse: {
+              '0%, 100%': { backgroundColor: 'transparent' },
+              '50%': { backgroundColor: 'rgba(251, 191, 36, 0.2)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root { --chart-bg: #111111; --chart-border: #27272A; --chart-text: #A1A1AA; --chart-grid: #1a1a1a; }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background-color: #27272A; border-radius: 10px; border: 2px solid #000; }
+    .order-card { transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1); }
+    [data-page] { display: none; }
+    [data-page].active { display: block; }
+    .nav-link.active { background-color: #27272A; color: #F4F4F5; }
+    .nav-link.active svg { color: #FBBF24; }
+    .nav-link.pulse-once { animation: pulse 1.5s ease-in-out; }
+
+    #heatmap-tooltip {
+      position: absolute;
+      display: none;
+      background-color: #1A1A1A;
+      color: #F4F4F5;
+      border: 1px solid #27272A;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 12px;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 100;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      transform: translate(-50%, -120%);
+    }
+  </style>
+</head>
+<body class="bg-krishna-bg text-krishna-text-primary font-sans antialiased">
+  <div id="app" class="flex h-screen overflow-hidden">
+    
+    <!-- Sidebar Navigation -->
+    <nav class="w-64 flex-shrink-0 bg-krishna-surface border-r border-krishna-border flex flex-col">
+        <div class="p-6 border-b border-krishna-border">
+            <h1 class="text-2xl font-bold">🍳 Krishna's Kitchen</h1>
+            <p class="text-sm text-krishna-text-secondary">Command Center</p>
+        </div>
+        <div class="flex-grow p-4 space-y-2 overflow-y-auto">
+            <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="dashboard">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                <span>Live Dashboard</span>
+            </a>
+            <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="analytics">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                <span>Analytics</span>
+            </a>
+             <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="menu-intelligence">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5-.3.3-.5.7-.5 1.1V21c0 .8.7 1.5 1.5 1.5h8c.8 0 1.5-.7 1.5-1.5v-14L15.5 2z"/><path d="M3 7.6v12.8c0 .8.7 1.5 1.5 1.5h9"/><path d="M15 2v5h5"/></svg>
+                <span>Menu Intelligence</span>
+            </a>
+            <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="inventory">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                <span>Inventory</span>
+            </a>
+            <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="customers">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Customers</span>
+            </a>
+            <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="marketing">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M12 17a5 5 0 0 0 5-5h-2a3 3 0 0 1-3-3V7a5 5 0 0 0-5 5v2a3 3 0 0 1 3 3h2Z"/><path d="M21 17a5 5 0 0 0-5-5h-2a3 3 0 0 1-3-3V7a5 5 0 0 0-5 5v2a3 3 0 0 1 3 3h2a5 5 0 0 0 5 5Z"/></svg>
+                <span>Marketing</span>
+            </a>
+            <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="history">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                <span>Order History</span>
+            </a>
+        </div>
+        <div class="p-4 border-t border-krishna-border text-center">
+            <p class="text-sm font-medium">Krishna's Restaurant</p>
+            <p class="text-xs text-krishna-text-tertiary">&copy; 2024. All rights reserved.</p>
+        </div>
+    </nav>
+    
+    <!-- Main Content Area -->
+    <main class="flex-grow overflow-y-auto">
+        <!-- Live Dashboard Page -->
+        <div id="dashboard-page" data-page>
+            <div class="p-6">
+                <header class="mb-6"><h2 class="text-3xl font-extrabold text-krishna-text-primary">Live Dashboard</h2><p class="text-krishna-text-secondary">Real-time overview of your kitchen's performance.</p></header>
+                <section class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-in">
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">Today's Revenue</h3><p id="todays-revenue" class="text-3xl font-bold">₹0.00</p></div>
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">Avg. Order Value</h3><p id="aov" class="text-3xl font-bold">₹0.00</p></div>
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">Avg. Prep Time</h3><p id="avg-prep-time" class="text-3xl font-bold">0m 0s</p></div>
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">Today's Orders</h3><p id="todays-orders" class="text-3xl font-bold">0</p></div>
+                </section>
+                <main class="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-slide-in" style="animation-delay: 150ms;">
+                    <div class="flex flex-col"><div class="flex items-center gap-3 mb-4"><div class="w-3 h-3 rounded-full bg-status-pending"></div><h2 class="text-lg font-semibold">Pending</h2><span id="stat-pending" class="bg-status-pending/20 text-status-pending text-xs font-bold px-2 py-1 rounded-full">0</span></div><div id="col-pending" class="bg-krishna-surface/50 rounded-lg p-3 space-y-3 min-h-[60vh] overflow-y-auto"></div></div>
+                    <div class="flex flex-col"><div class="flex items-center gap-3 mb-4"><div class="w-3 h-3 rounded-full bg-status-preparing"></div><h2 class="text-lg font-semibold">Preparing</h2><span id="stat-preparing" class="bg-status-preparing/20 text-status-preparing text-xs font-bold px-2 py-1 rounded-full">0</span></div><div id="col-preparing" class="bg-krishna-surface/50 rounded-lg p-3 space-y-3 min-h-[60vh] overflow-y-auto"></div></div>
+                    <div class="flex flex-col"><div class="flex items-center gap-3 mb-4"><div class="w-3 h-3 rounded-full bg-status-ready"></div><h2 class="text-lg font-semibold">Ready</h2><span id="stat-ready" class="bg-status-ready/20 text-status-ready text-xs font-bold px-2 py-1 rounded-full">0</span></div><div id="col-ready" class="bg-krishna-surface/50 rounded-lg p-3 space-y-3 min-h-[60vh] overflow-y-auto"></div></div>
+                </main>
+            </div>
+        </div>
+
+        <!-- Analytics Page -->
+        <div id="analytics-page" data-page>
+             <div class="p-6">
+                <header class="mb-6"><h2 class="text-3xl font-extrabold text-krishna-text-primary">Revenue Analytics</h2><p class="text-krishna-text-secondary">Dive deep into your sales and performance data.</p></header>
+                <section class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-in">
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">Today vs Yesterday</h3><p id="revenue-comparison-day" class="text-2xl font-bold text-profit">+0%</p></div>
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">This Week vs Last</h3><p id="revenue-comparison-week" class="text-2xl font-bold text-loss">-0%</p></div>
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">Best Revenue Day</h3><p id="best-day" class="text-2xl font-bold">N/A</p></div>
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">Revenue Forecast</h3><p id="revenue-forecast" class="text-2xl font-bold">~₹0</p></div>
+                </section>
+                <section class="mb-6 animate-slide-in" style="animation-delay: 150ms;">
+                    <h3 class="text-xl font-bold mb-4">Daily Revenue Intensity</h3>
+                    <div id="revenue-heatmap-container" class="bg-krishna-surface p-4 rounded-xl border border-krishna-border">
+                        <!-- Heatmap will be rendered here -->
+                    </div>
+                </section>
+                <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-in" style="animation-delay: 300ms;">
+                    <div><h3 class="text-xl font-bold mb-4">Hourly Rush Analysis</h3><div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border h-80"><canvas id="hourly-rush-chart"></canvas></div></div>
+                    <div><h3 class="text-xl font-bold mb-4">Payment Methods</h3><div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border h-80"><canvas id="payment-methods-chart"></canvas></div></div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Menu Intelligence Page -->
+        <div id="menu-intelligence-page" data-page>
+            <div class="p-6">
+                 <header class="mb-6"><h2 class="text-3xl font-extrabold text-krishna-text-primary">Menu Intelligence</h2><p class="text-krishna-text-secondary">Optimize your menu for profitability and popularity.</p></header>
+                <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 animate-slide-in">
+                    <div><h3 class="text-xl font-bold mb-4">Menu Performance</h3><div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border space-y-4"><h4 class="font-semibold text-krishna-text-primary mb-2">🚀 Top 5 Best Sellers</h4><ul id="top-sellers" class="space-y-2"></ul><h4 class="font-semibold text-krishna-text-primary mt-4 mb-2">📉 Least Popular Items</h4><ul id="least-sellers" class="space-y-2"></ul></div></div>
+                    <div><h3 class="text-xl font-bold mb-4">Combo Opportunities</h3><div id="combo-opportunities" class="bg-krishna-surface p-4 rounded-xl border border-krishna-border space-y-3"></div></div>
+                </section>
+                <section class="animate-slide-in" style="animation-delay: 150ms;"><h3 class="text-xl font-bold mb-4">Profitability Analysis (Top Sellers)</h3><div class="bg-krishna-surface/50 border border-krishna-border rounded-xl p-4"><div class="overflow-x-auto"><table class="w-full text-left"><thead class="text-xs text-krishna-text-secondary uppercase"><tr><th class="p-3">Item</th><th class="p-3 text-right">Revenue</th><th class="p-3 text-right">Est. Cost</th><th class="p-3 text-right">Est. Profit</th></tr></thead><tbody id="profitability-table" class="divide-y divide-krishna-border"></tbody></table></div></div></section>
+            </div>
+        </div>
+
+        <!-- Inventory Page -->
+        <div id="inventory-page" data-page>
+            <div class="p-6">
+                 <header class="mb-6 flex justify-between items-center"><div_><h2 class="text-3xl font-extrabold text-krishna-text-primary">Smart Inventory</h2><p class="text-krishna-text-secondary">Track ingredients and get low-stock alerts.</p></div_> <button onclick="showInventoryModal()" class="py-2 px-4 bg-krishna-brand text-krishna-bg font-semibold rounded-lg hover:opacity-90 transition-opacity">Add Ingredient</button></header>
+                <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 animate-slide-in">
+                    <div><h3 class="text-xl font-bold mb-4">Inventory Status</h3><div class="bg-krishna-surface/50 border border-krishna-border rounded-xl"><div class="overflow-y-auto max-h-96"><table class="w-full text-left"><thead class="text-xs text-krishna-text-secondary uppercase sticky top-0 bg-krishna-surface"><tr><th class="p-3">Ingredient</th><th class="p-3">Current Stock</th><th class="p-3">Status</th><th class="p-3 text-right">Actions</th></tr></thead><tbody id="inventory-table" class="divide-y divide-krishna-border"></tbody></table></div></div></div>
+                    <div><h3 class="text-xl font-bold mb-4">Predicted Shopping List</h3><div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><p class="text-sm text-krishna-text-secondary mb-3">Based on sales velocity for the upcoming weekend.</p><div id="shopping-list-items" class="space-y-2"></div><div class="mt-4 flex gap-2"><input type="text" id="shopping-item-name" placeholder="Item Name" class="flex-grow bg-krishna-surface-2 px-3 py-1.5 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none text-sm"><input type="text" id="shopping-item-amount" placeholder="Amount" class="w-24 bg-krishna-surface-2 px-3 py-1.5 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none text-sm"><button onclick="addShoppingListItem()" class="py-1.5 px-3 bg-krishna-brand text-krishna-bg font-semibold rounded-lg hover:opacity-90 transition-opacity text-sm">Add</button></div></div></div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Customers Page -->
+        <div id="customers-page" data-page>
+            <div class="p-6">
+                <header class="mb-6"><h2 class="text-3xl font-extrabold text-krishna-text-primary">Customer Insights</h2><p class="text-krishna-text-secondary">Understand your customer behavior and feedback.</p></header>
+                <section class="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-in">
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">New Customers Today</h3><p class="text-3xl font-bold">12</p></div>
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">Returning Customers</h3><p class="text-3xl font-bold">34</p></div>
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">Avg. Rating</h3><p class="text-3xl font-bold">4.8 ★</p></div>
+                    <div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><h3 class="text-sm font-medium text-krishna-text-secondary">NPS Score</h3><p class="text-3xl font-bold text-profit">72</p></div>
+                </section>
+                <section class="animate-slide-in" style="animation-delay: 150ms;"><h3 class="text-xl font-bold mb-4">Recent Feedback & Ratings</h3><div id="customer-feedback" class="space-y-3"></div></section>
+            </div>
+        </div>
+
+        <!-- Marketing Page -->
+        <div id="marketing-page" data-page>
+            <div class="p-6">
+                 <header class="mb-6"><h2 class="text-3xl font-extrabold text-krishna-text-primary">Marketing & Promotions</h2><p class="text-krishna-text-secondary">Create campaigns and special offers to drive sales.</p></header>
+                <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-in">
+                    <div><h3 class="text-xl font-bold mb-4">Create a New Campaign</h3><div class="bg-krishna-surface p-6 rounded-xl border border-krishna-border space-y-4"><input id="campaign-name" type="text" placeholder="Campaign Name (e.g., Monday Madness)" class="w-full bg-krishna-surface-2 px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none"><textarea id="campaign-detail" placeholder="Offer Details (e.g., 20% off on all Paneer dishes)" class="w-full bg-krishna-surface-2 px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none h-24"></textarea><button onclick="addPromotion()" class="w-full py-2 px-4 bg-krishna-brand text-krishna-bg font-semibold rounded-lg hover:opacity-90 transition-opacity">Launch Campaign</button></div></div>
+                    <div><h3 class="text-xl font-bold mb-4">Active Promotions</h3><div id="active-promotions" class="bg-krishna-surface p-4 rounded-xl border border-krishna-border space-y-3"></div></div>
+                </section>
+            </div>
+        </div>
+        
+        <!-- Order History Page -->
+        <div id="history-page" data-page>
+             <div class="p-6">
+                <header class="mb-6"><h2 class="text-3xl font-extrabold text-krishna-text-primary">Order History</h2><p class="text-krishna-text-secondary">Review all completed orders.</p></header>
+                <div class="bg-krishna-surface/50 border border-krishna-border rounded-xl p-4 animate-slide-in">
+                    <div class="flex flex-col md:flex-row gap-4 mb-4">
+                        <input type="text" id="history-search" placeholder="Search by Table # or Order ID..." class="w-full md:w-1/3 bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none">
+                        <select id="history-filter-date" class="bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="all">All Time</option></select>
+                    </div>
+                    <div id="history-cards-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <!-- History cards will be injected here -->
+                    </div>
+                    <div id="history-empty-state" class="text-center py-16 text-krishna-text-secondary hidden"><p>No completed orders match your search.</p></div>
+                </div>
+            </div>
+        </div>
+    </main>
+  </div>
+  
+  <!-- Inventory Add/Edit Modal -->
+    <div id="inventory-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-fade-in">
+        <div class="bg-krishna-surface-2 border border-krishna-border rounded-xl p-6 w-full max-w-md shadow-2xl animate-slide-in">
+            <h3 id="modal-title" class="text-xl font-bold mb-4">Add Ingredient</h3>
+            <form id="inventory-form" onsubmit="event.preventDefault(); saveInventoryItem();">
+                <input type="hidden" id="inventory-index">
+                <div class="space-y-4">
+                    <div>
+                        <label for="ingredient-name" class="text-sm font-medium text-krishna-text-secondary">Ingredient Name</label>
+                        <input type="text" id="ingredient-name" required class="mt-1 w-full bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none">
+                    </div>
+                    <div>
+                        <label for="ingredient-stock" class="text-sm font-medium text-krishna-text-secondary">Current Stock (e.g., 5 kg)</label>
+                        <input type="text" id="ingredient-stock" required class="mt-1 w-full bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none">
+                    </div>
+                    <div>
+                        <label for="ingredient-status" class="text-sm font-medium text-krishna-text-secondary">Status</label>
+                        <select id="ingredient-status" required class="mt-1 w-full bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none">
+                            <option value="OK">OK</option>
+                            <option value="Low">Low</option>
+                            <option value="Critical">Critical</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="hideInventoryModal()" class="py-2 px-4 bg-krishna-surface border border-krishna-border text-white font-semibold rounded-lg hover:bg-krishna-border transition-colors">Cancel</button>
+                    <button type="submit" class="py-2 px-4 bg-krishna-brand text-krishna-bg font-semibold rounded-lg hover:opacity-90 transition-opacity">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="heatmap-tooltip"></div>
+
+  <script>
+    // --- CONFIGURATION ---
+    const firebaseConfig = {
+  apiKey: "AIzaSyBiCK1asyca1Hbc_l_HW_z0a-NiCAKE9ps",
+  authDomain: "krishna-e9c59.firebaseapp.com",
+  databaseURL: "https://krishna-e9c59-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "krishna-e9c59",
+  storageBucket: "krishna-e9c59.firebasestorage.app",
+  messagingSenderId: "1048468387337",
+  appId: "1:1048468387337:web:95bd7281d40f8db4b02ad8",
+  measurementId: "G-RXF4SNS526"
+};
+    if (firebaseConfig.apiKey === "YOUR_API_KEY") { alert("Please replace the placeholder Firebase config in dashboard_index.html with your actual project credentials."); }
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // --- STATE MANAGEMENT ---
+    let state = {
+        allOrders: {
+            'mockorder1': { orderId: 'mockorder1', tableNumber: 3, status: 'completed', timestamp: Date.now() - 172800000, statusTimestamp: Date.now() - 172700000, items: [{name: 'Paneer Butter Masala', quantity: 1, price: 350}, {name: 'Butter Naan', quantity: 2, price: 70}], total: 490 },
+            'mockorder2': { orderId: 'mockorder2', tableNumber: 5, status: 'completed', timestamp: Date.now() - 86400000, statusTimestamp: Date.now() - 86300000, items: [{name: 'Veg Biryani', quantity: 1, price: 320}], total: 352 },
+            'mockorder3': { orderId: 'mockorder3', tableNumber: 1, status: 'completed', timestamp: Date.now() - 200000, statusTimestamp: Date.now() - 100000, items: [{name: 'Dal Makhani', quantity: 2, price: 300}, {name: 'Garlic Naan', quantity: 4, price: 80}], total: 920 },
+            'mockorder4': { orderId: 'mockorder4', tableNumber: 8, status: 'completed', timestamp: Date.now() - 3600000, statusTimestamp: Date.now() - 3500000, items: [{name: 'Hara Bhara Kebab', quantity: 1, price: 220}, {name: 'Masala Chaas', quantity: 2, price: 80}], total: 380 },
+        },
+        activePage: 'dashboard',
+        charts: {},
+        inventory: [ { name: 'Paneer', stock: '5 kg', status: 'OK' }, { name: 'Tomatoes', stock: '2 kg', status: 'Low' }, { name: 'Onions', stock: '15 kg', status: 'OK' }, { name: 'Lentils (Black)', stock: '8 kg', status: 'OK' }, { name: 'Basmati Rice', stock: '25 kg', status: 'OK' }, { name: 'All-Purpose Flour', stock: '1 kg', status: 'Critical' } ],
+        itemCosts: { 'Paneer Butter Masala': 120, 'Dal Makhani': 80, 'Veg Biryani': 95, 'Hara Bhara Kebab': 60, 'Gulab Jamun': 35, 'Butter Naan': 20, 'Garlic Naan': 25, 'Masala Chaas': 25 },
+        shoppingList: [ { item: 'Tomatoes', amount: '10 kg' }, { item: 'All-Purpose Flour', amount: '20 kg' }, { item: 'Cream', amount: '5 liters' } ],
+        promotions: [ { name: 'Weekend Bonanza', detail: '15% off on all Thalis' }, { name: 'Happy Hour', detail: 'Buy one get one free on Beverages (4 PM - 6 PM)' } ],
+        feedback: [ { rating: 5, comment: 'The Paneer Butter Masala was divine!', table: 3 }, { rating: 4, comment: 'A bit slow, but the food was worth the wait.', table: 7 }, { rating: 5, comment: 'Best Dal Makhani in town!', table: 2 } ],
+    };
+    const notificationAudio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3');
+    
+    // --- UTILITY FUNCTIONS ---
+    const formatTime = s => isNaN(s) || s < 0 ? '...' : `${Math.floor(s/60)}m ${Math.floor(s%60).toString().padStart(2,'0')}s`;
+    const formatCurrency = amount => `₹${amount.toFixed(2)}`;
+    const formatFullTimestamp = ts => new Date(ts).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+
+    // --- RENDER FUNCTIONS ---
+    function createOrderCardHTML(order) {
+        const itemsHTML = order.items.map(item => `<li class="flex justify-between items-center text-krishna-text-secondary text-sm"><span class="truncate pr-2">${item.quantity} x ${item.name}</span><span class="flex-shrink-0">${formatCurrency(item.quantity * item.price)}</span></li>`).join('');
+        let actionButtonHTML = '';
+        if (order.status === 'pending') actionButtonHTML = `<button onclick="updateOrderStatus('${order.orderId}', 'preparing')" class="w-full mt-4 py-2 px-4 bg-status-preparing text-white font-semibold rounded-lg hover:bg-blue-500 transition-colors">Start Cooking</button>`;
+        else if (order.status === 'preparing') actionButtonHTML = `<button onclick="updateOrderStatus('${order.orderId}', 'ready')" class="w-full mt-4 py-2 px-4 bg-status-ready text-white font-semibold rounded-lg hover:bg-green-500 transition-colors">Mark as Ready</button>`;
+        else if (order.status === 'ready') actionButtonHTML = `<button onclick="updateOrderStatus('${order.orderId}', 'completed')" class="w-full mt-4 py-2 px-4 bg-status-completed text-white font-semibold rounded-lg hover:bg-gray-500 transition-colors">Mark Completed</button>`;
+        const timeInStatus = (Date.now() - (order.statusTimestamp || order.timestamp)) / 1000;
+        return `<div id="order-${order.orderId}" class="order-card animate-fade-in bg-krishna-surface-2 border border-krishna-border rounded-lg p-4 shadow-lg"><div class="flex justify-between items-center mb-3"><h3 class="text-lg font-bold">Table #${order.tableNumber}</h3><span class="text-xs font-mono text-krishna-text-secondary timer" data-timestamp="${order.statusTimestamp || order.timestamp}">${formatTime(timeInStatus)}</span></div><ul class="space-y-1 my-3">${itemsHTML}</ul><div class="border-t border-dashed border-krishna-border pt-3 mt-3 flex justify-between items-center font-bold"><span>Total</span><span>${formatCurrency(order.total)}</span></div>${actionButtonHTML}</div>`;
+    }
+
+    function createHistoryCardHTML(order) {
+        const itemsHTML = order.items.map(item => `<li class="flex justify-between items-center text-krishna-text-secondary text-sm"><span class="truncate pr-2">${item.quantity} x ${item.name}</span><span class="flex-shrink-0">${formatCurrency(item.quantity * item.price)}</span></li>`).join('');
+        const prepTime = (order.statusTimestamp && order.timestamp) ? (order.statusTimestamp - order.timestamp) / 1000 : 0;
+        const prepTimeFormatted = prepTime > 0 ? formatTime(prepTime) : 'N/A';
+        return `<div id="history-order-${order.orderId}" class="order-card animate-fade-in bg-krishna-surface-2 border border-krishna-border rounded-lg p-4 shadow-lg"><div class="flex justify-between items-start mb-3"><h3 class="text-lg font-bold">Table #${order.tableNumber}</h3><div class="text-right"><span class="text-xs font-mono text-krishna-text-secondary">${formatFullTimestamp(order.statusTimestamp || order.timestamp)}</span></div></div><ul class="space-y-1 my-3">${itemsHTML}</ul><div class="border-t border-dashed border-krishna-border pt-3 mt-3"><div class="flex justify-between items-center font-bold mb-2"><span>Total</span><span>${formatCurrency(order.total)}</span></div><div class="flex justify-between items-center text-sm text-krishna-text-secondary"><span>Time to Prepare</span><span class="font-semibold text-krishna-text-primary">${prepTimeFormatted}</span></div></div></div>`;
+    }
+
+    function renderAllPages() {
+        const orders = Object.values(state.allOrders);
+        renderLiveDashboard(orders);
+        renderOrderHistory(orders);
+        renderAnalytics(orders);
+        renderMenuIntelligence(orders);
+        renderStatefulModules();
+        calculateAndRenderInsights(orders);
+    }
+    
+    function renderLiveDashboard(orders) {
+        const cols = { pending: document.getElementById('col-pending'), preparing: document.getElementById('col-preparing'), ready: document.getElementById('col-ready') };
+        Object.values(cols).forEach(col => col.innerHTML = '');
+        const liveOrders = orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).sort((a,b) => a.timestamp - b.timestamp);
+        let counts = { pending: 0, preparing: 0, ready: 0 };
+        liveOrders.forEach(order => { cols[order.status].innerHTML += createOrderCardHTML(order); counts[order.status]++; });
+        Object.keys(counts).forEach(status => { document.getElementById(`stat-${status}`).textContent = counts[status]; });
+    }
+
+    function renderOrderHistory(orders) {
+        const searchTerm = document.getElementById('history-search').value.toLowerCase();
+        const dateFilter = document.getElementById('history-filter-date').value;
+        const now = new Date(), todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime(), yesterdayStart = todayStart - 86400000;
+        const filteredOrders = orders.filter(o => o.status === 'completed').filter(o => {
+            const searchMatch = !searchTerm || o.orderId.toLowerCase().includes(searchTerm) || o.tableNumber.toString().includes(searchTerm);
+            let dateMatch = dateFilter === 'all' || (dateFilter === 'today' && o.timestamp >= todayStart) || (dateFilter === 'yesterday' && o.timestamp >= yesterdayStart && o.timestamp < todayStart);
+            return searchMatch && dateMatch;
+        }).sort((a, b) => b.timestamp - a.timestamp);
+        
+        const container = document.getElementById('history-cards-container');
+        container.innerHTML = filteredOrders.map(o => createHistoryCardHTML(o)).join('');
+        document.getElementById('history-empty-state').style.display = filteredOrders.length === 0 ? 'block' : 'none';
+    }
+    
+    function calculateAndRenderInsights(orders) {
+        const now = new Date(), todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const todaysOrders = orders.filter(o => o.timestamp >= todayStart);
+        const todaysRevenue = todaysOrders.reduce((s, o) => s + o.total, 0);
+        const todaysOrderCount = todaysOrders.length;
+        const avgOrderValue = todaysOrderCount > 0 ? todaysRevenue / todaysOrderCount : 0;
+        const completedOrders = orders.filter(o => o.status === 'completed' && o.statusTimestamp && o.timestamp);
+        const totalPrepTime = completedOrders.reduce((s, o) => s + (o.statusTimestamp - o.timestamp), 0);
+        const avgPrepTimeSeconds = completedOrders.length > 0 ? (totalPrepTime / completedOrders.length) / 1000 : 0;
+        document.getElementById('todays-revenue').textContent = formatCurrency(todaysRevenue);
+        document.getElementById('todays-orders').textContent = todaysOrderCount;
+        document.getElementById('aov').textContent = formatCurrency(avgOrderValue);
+        document.getElementById('avg-prep-time').textContent = formatTime(avgPrepTimeSeconds);
+    }
+
+    function renderAnalytics(orders) {
+        if (!orders || orders.length === 0) return;
+        renderRevenueHeatmap(orders);
+        renderHourlyRushChart(orders);
+        renderPaymentMethodsChart();
+        renderRevenueComparisons(orders);
+    }
+    
+    function renderMenuIntelligence(orders) {
+        const itemCounts = orders.flatMap(o => o.items).reduce((acc, item) => {
+            acc[item.name] = (acc[item.name] || 0) + item.quantity;
+            return acc;
+        }, {});
+        const sortedItems = Object.entries(itemCounts).sort(([,a],[,b]) => b-a);
+        const top5 = sortedItems.slice(0, 5);
+        const bottom5 = sortedItems.slice(-5).reverse();
+        document.getElementById('top-sellers').innerHTML = top5.map(([name, count]) => `<li class="text-sm flex justify-between text-krishna-text-secondary"><span>${name}</span> <span class="font-bold text-krishna-text-primary">${count} sold</span></li>`).join('');
+        document.getElementById('least-sellers').innerHTML = bottom5.map(([name, count]) => `<li class="text-sm flex justify-between text-krishna-text-secondary"><span>${name}</span> <span class="font-bold text-krishna-text-primary">${count} sold</span></li>`).join('');
+
+        const comboCounts = {};
+        orders.forEach(order => {
+            if (order.items.length > 1) {
+                for (let i = 0; i < order.items.length; i++) {
+                    for (let j = i + 1; j < order.items.length; j++) {
+                        const pair = [order.items[i].name, order.items[j].name].sort().join(' + ');
+                        comboCounts[pair] = (comboCounts[pair] || 0) + 1;
+                    }
+                }
+            }
+        });
+        const topCombos = Object.entries(comboCounts).sort(([,a],[,b]) => b-a).slice(0, 3);
+        document.getElementById('combo-opportunities').innerHTML = topCombos.map(([pair, count]) => `<div class="bg-krishna-surface-2 p-3 rounded-lg"><p class="font-semibold text-sm">${pair}</p><p class="text-xs text-krishna-text-secondary">Ordered together ${count} times</p></div>`).join('');
+        
+        const profitability = top5.map(([name, count]) => {
+            const revenue = (orders.flatMap(o => o.items).find(i => i.name === name)?.price || 0) * count;
+            const cost = (state.itemCosts[name] || 0) * count;
+            const profit = revenue - cost;
+            return { name, revenue, cost, profit };
+        });
+        document.getElementById('profitability-table').innerHTML = profitability.map(p => `<tr><td class="p-3 font-semibold">${p.name}</td><td class="p-3 text-right">${formatCurrency(p.revenue)}</td><td class="p-3 text-right"><span class="text-krishna-text-secondary mr-1">₹</span><input type="number" value="${state.itemCosts[p.name] || 0}" onchange="updateItemCost('${p.name}', this)" class="bg-krishna-surface w-20 text-right p-1 rounded border border-krishna-border focus:outline-none focus:ring-1 focus:ring-krishna-brand"></td><td class="p-3 text-right font-bold ${p.profit >= 0 ? 'text-profit':'text-loss'}">${formatCurrency(p.profit)}</td></tr>`).join('');
+    }
+    
+    function renderStatefulModules() {
+        document.getElementById('inventory-table').innerHTML = state.inventory.map((item, index) => `<tr><td class="p-3 font-semibold">${item.name}</td><td class="p-3">${item.stock}</td><td class="p-3"><span class="px-2 py-1 text-xs font-bold rounded-full ${item.status === 'OK' ? 'bg-green-500/20 text-green-400' : item.status === 'Low' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}">${item.status}</span></td><td class="p-3 text-right space-x-2"><button onclick="showInventoryModal(${index})" class="p-1 text-krishna-text-secondary hover:text-krishna-brand transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></button><button onclick="deleteInventoryItem(${index})" class="p-1 text-krishna-text-secondary hover:text-loss transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></td></tr>`).join('');
+        document.getElementById('shopping-list-items').innerHTML = state.shoppingList.map((i, index) => `<div class="bg-krishna-surface-2 p-3 rounded-lg flex justify-between items-center"><span class="font-semibold text-sm">${i.item}<p class="text-xs text-krishna-text-secondary font-normal">${i.amount}</p></span><button onclick="deleteShoppingListItem(${index})" class="p-1 text-krishna-text-secondary hover:text-loss transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`).join('');
+        document.getElementById('customer-feedback').innerHTML = state.feedback.map(f => `<div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><div class="flex justify-between items-center mb-1"><span class="font-semibold">Table #${f.table}</span><span class="text-yellow-400 font-bold">${'★'.repeat(f.rating)}${'☆'.repeat(5-f.rating)}</span></div><p class="text-sm text-krishna-text-secondary italic">"${f.comment}"</p></div>`).join('');
+        document.getElementById('active-promotions').innerHTML = state.promotions.map((p, index) => `<div class="bg-krishna-surface-2 p-3 rounded-lg flex justify-between items-center"><div><p class="font-semibold text-sm text-krishna-brand">${p.name}</p><p class="text-xs text-krishna-text-secondary">${p.detail}</p></div><button onclick="deletePromotion(${index})" class="p-1 text-krishna-text-secondary hover:text-loss transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`).join('');
+    }
+
+    function chartOptions(title, timeUnit = undefined) {
+      return { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: false }, tooltip: { backgroundColor: 'var(--krishna-surface-2)', titleColor: 'var(--krishna-text-primary)', bodyColor: 'var(--krishna-text-secondary)', displayColors: false, padding: 10, cornerRadius: 6 } }, scales: { y: { ticks: { color: 'var(--chart-text)' }, grid: { color: 'var(--chart-grid)' }, border: { color: 'var(--chart-border)' } }, x: { type: timeUnit ? 'time' : 'category', time: { unit: timeUnit }, ticks: { color: 'var(--chart-text)' }, grid: { display: false }, border: { color: 'var(--chart-border)' } } } };
+    }
+
+    function renderRevenueHeatmap(orders) {
+        const container = document.getElementById('revenue-heatmap-container');
+        container.innerHTML = '';
+        const salesByDay = orders.reduce((acc, order) => { const date = new Date(order.timestamp).toISOString().split('T')[0]; acc[date] = (acc[date] || 0) + order.total; return acc; }, {});
+        const today = new Date();
+        const daysToShow = 182; // Approx 6 months
+        const startDate = new Date(today.getTime() - daysToShow * 24 * 60 * 60 * 1000);
+        
+        const maxRevenue = Math.max(...Object.values(salesByDay), 1);
+        const colorStops = ['#27272A', '#5b21b6', '#7c3aed', '#a78bfa', '#c4b5fd'];
+        const getColor = (value) => {
+            if (!value || value === 0) return colorStops[0];
+            const percentage = value / maxRevenue;
+            if (percentage < 0.25) return colorStops[1];
+            if (percentage < 0.50) return colorStops[2];
+            if (percentage < 0.75) return colorStops[3];
+            return colorStops[4];
+        };
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'flex gap-3 text-xs text-krishna-text-tertiary';
+        
+        const dayLabels = document.createElement('div');
+        dayLabels.className = 'flex flex-col justify-between pt-5';
+        ['M', 'W', 'F'].forEach((day, i) => { const el = document.createElement('div'); el.textContent = day; if (i > 0) el.style.marginTop = '20px'; dayLabels.appendChild(el); });
+        
+        const gridWrapper = document.createElement('div');
+        gridWrapper.className = 'flex-grow overflow-x-auto';
+        
+        const grid = document.createElement('div');
+        grid.className = 'grid grid-flow-col grid-rows-7 gap-1.5';
+
+        const monthLabels = document.createElement('div');
+        monthLabels.className = 'flex justify-around text-xs text-krishna-text-tertiary mb-1';
+        
+        let currentDate = new Date(startDate);
+        const firstDayOfWeek = (currentDate.getDay() + 6) % 7;
+        for (let i = 0; i < firstDayOfWeek; i++) {
+            grid.appendChild(document.createElement('div'));
+        }
+
+        let currentMonth = -1;
+        for (let i = 0; i < daysToShow; i++) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+            const value = salesByDay[dateStr] || 0;
+            const cell = document.createElement('div');
+            cell.className = 'w-4 h-4 rounded-sm cursor-pointer';
+            cell.style.backgroundColor = getColor(value);
+            cell.dataset.tooltip = `${dateStr}: ${formatCurrency(value)}`;
+            grid.appendChild(cell);
+
+            if(currentDate.getMonth() !== currentMonth) {
+                currentMonth = currentDate.getMonth();
+                const monthLabel = document.createElement('div');
+                monthLabel.textContent = currentDate.toLocaleString('default', { month: 'short' });
+                monthLabels.appendChild(monthLabel);
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        gridWrapper.append(monthLabels, grid);
+        wrapper.append(dayLabels, gridWrapper);
+        container.append(wrapper);
+
+        const tooltipEl = document.getElementById('heatmap-tooltip');
+        container.addEventListener('mouseover', e => {
+            if (e.target.dataset.tooltip) {
+                tooltipEl.textContent = e.target.dataset.tooltip;
+                tooltipEl.style.display = 'block';
+            }
+        });
+        container.addEventListener('mousemove', e => {
+            if (e.target.dataset.tooltip) {
+                tooltipEl.style.left = `${e.clientX}px`;
+                tooltipEl.style.top = `${e.clientY}px`;
+            }
+        });
+        container.addEventListener('mouseout', () => {
+            tooltipEl.style.display = 'none';
+        });
+    }
+
+    function renderHourlyRushChart(orders) {
+        const ctx = document.getElementById('hourly-rush-chart').getContext('2d');
+        if (state.charts.hourly) state.charts.hourly.destroy();
+        const ordersByHour = Array(24).fill(0);
+        orders.forEach(order => ordersByHour[new Date(order.timestamp).getHours()]++);
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.6)');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+        state.charts.hourly = new Chart(ctx, { type: 'bar', data: { labels: Array.from({length: 24}, (_, i) => `${i}`), datasets: [{ label: 'Orders', data: ordersByHour, backgroundColor: gradient, borderColor: 'rgba(59, 130, 246, 0.8)', borderWidth: 1, borderRadius: 4 }] }, options: chartOptions('') });
+    }
+    
+    function renderPaymentMethodsChart() {
+        const ctx = document.getElementById('payment-methods-chart').getContext('2d');
+        if (state.charts.payment) state.charts.payment.destroy();
+        state.charts.payment = new Chart(ctx, { type: 'doughnut', data: { labels: ['UPI', 'Card', 'Cash'], datasets: [{ data: [65, 25, 10], backgroundColor: ['#10B981', '#3B82F6', '#6B7280'], borderWidth: 0 }] }, options: { ...chartOptions(''), cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: 'var(--chart-text)', usePointStyle: true, boxWidth: 8 } } } } });
+    }
+
+    function renderRevenueComparisons(orders) {
+        const now = new Date();
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const yesterdayStart = todayStart - 86400000;
+        const weekStart = todayStart - (now.getDay() * 86400000);
+        const lastWeekStart = weekStart - 7 * 86400000;
+        const revenueToday = orders.filter(o => o.timestamp >= todayStart).reduce((sum, o) => sum + o.total, 0);
+        const revenueYesterday = orders.filter(o => o.timestamp >= yesterdayStart && o.timestamp < todayStart).reduce((sum, o) => sum + o.total, 0);
+        const revenueThisWeek = orders.filter(o => o.timestamp >= weekStart).reduce((sum, o) => sum + o.total, 0);
+        const revenueLastWeek = orders.filter(o => o.timestamp >= lastWeekStart && o.timestamp < weekStart).reduce((sum, o) => sum + o.total, 0);
+        const dayChange = revenueYesterday > 0 ? ((revenueToday - revenueYesterday) / revenueYesterday) * 100 : revenueToday > 0 ? 100 : 0;
+        const weekChange = revenueLastWeek > 0 ? ((revenueThisWeek - revenueLastWeek) / revenueLastWeek) * 100 : revenueThisWeek > 0 ? 100 : 0;
+        const dayEl = document.getElementById('revenue-comparison-day'); dayEl.textContent = `${dayChange >= 0 ? '+' : ''}${dayChange.toFixed(0)}%`; dayEl.className = `text-2xl font-bold ${dayChange >= 0 ? 'text-profit' : 'text-loss'}`;
+        const weekEl = document.getElementById('revenue-comparison-week'); weekEl.textContent = `${weekChange >= 0 ? '+' : ''}${weekChange.toFixed(0)}%`; weekEl.className = `text-2xl font-bold ${weekChange >= 0 ? 'text-profit' : 'text-loss'}`;
+        const salesByDayOfWeek = orders.reduce((acc, order) => { const day = new Date(order.timestamp).getDay(); acc[day] = (acc[day] || 0) + order.total; return acc; }, {});
+        const bestDayIndex = Object.keys(salesByDayOfWeek).reduce((a, b) => salesByDayOfWeek[a] > salesByDayOfWeek[b] ? a : b, -1);
+        document.getElementById('best-day').textContent = bestDayIndex > -1 ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][bestDayIndex] : 'N/A';
+        const totalRevenue = orders.reduce((s,o) => s+o.total, 0);
+        const firstOrderDate = orders.length > 0 ? new Date(Math.min(...orders.map(o => o.timestamp))) : new Date();
+        const daysRunning = Math.max(1, (new Date() - firstOrderDate) / 86400000);
+        const dailyAvg = daysRunning > 0 ? totalRevenue / daysRunning : 0;
+        document.getElementById('revenue-forecast').textContent = `~${formatCurrency(dailyAvg * 1.1)}`;
+    }
+    
+    // --- FIREBASE & APP LOGIC ---
+    function listenToOrders() {
+      database.ref('orders').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (Object.keys(state.allOrders).length > 0 && data && Object.keys(data).length > Object.keys(state.allOrders).length) {
+            notificationAudio.play().catch(e => console.error("Audio playback failed:", e));
+        }
+        if (data) {
+          state.allOrders = { ...state.allOrders, ...data };
+        }
+        renderAllPages();
+      });
+    }
+
+    function updateOrderStatus(orderId, newStatus) {
+      database.ref('orders/' + orderId).update({ status: newStatus, statusTimestamp: firebase.database.ServerValue.TIMESTAMP })
+        .then(() => {
+          if (newStatus === 'completed') {
+            const historyLink = document.querySelector('.nav-link[data-page-target="history"]');
+            if (historyLink) {
+                historyLink.classList.add('pulse-once');
+                setTimeout(() => historyLink.classList.remove('pulse-once'), 1500);
+            }
+          }
+        })
+        .catch(error => console.error('Error updating order status:', error));
+    }
+
+    function setupEventListeners() {
+        document.querySelectorAll('.nav-link').forEach(link => link.addEventListener('click', e => { e.preventDefault(); navigateTo(link.dataset.pageTarget); }));
+        document.getElementById('history-search').addEventListener('input', () => renderOrderHistory(Object.values(state.allOrders)));
+        document.getElementById('history-filter-date').addEventListener('change', () => renderOrderHistory(Object.values(state.allOrders)));
+    }
+
+    function navigateTo(pageId) {
+        state.activePage = pageId;
+        document.querySelectorAll('[data-page]').forEach(page => page.classList.remove('active', 'animate-fade-in'));
+        document.getElementById(`${pageId}-page`).classList.add('active', 'animate-fade-in');
+        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+        document.querySelector(`.nav-link[data-page-target="${pageId}"]`).classList.add('active');
+    }
+
+    // --- CRUD FUNCTIONALITY ---
+    function showInventoryModal(index = null) {
+        const modal = document.getElementById('inventory-modal'), form = document.getElementById('inventory-form'), title = document.getElementById('modal-title');
+        form.reset();
+        if (index !== null) {
+            title.textContent = 'Edit Ingredient';
+            const item = state.inventory[index];
+            document.getElementById('inventory-index').value = index;
+            document.getElementById('ingredient-name').value = item.name;
+            document.getElementById('ingredient-stock').value = item.stock;
+            document.getElementById('ingredient-status').value = item.status;
+        } else {
+            title.textContent = 'Add Ingredient';
+            document.getElementById('inventory-index').value = '';
+        }
+        modal.classList.remove('hidden');
+    }
+    function hideInventoryModal() { document.getElementById('inventory-modal').classList.add('hidden'); }
+    function saveInventoryItem() {
+        const index = document.getElementById('inventory-index').value;
+        const newItem = { name: document.getElementById('ingredient-name').value, stock: document.getElementById('ingredient-stock').value, status: document.getElementById('ingredient-status').value };
+        if (index) state.inventory[parseInt(index)] = newItem; else state.inventory.push(newItem);
+        hideInventoryModal();
+        renderStatefulModules();
+    }
+    function deleteInventoryItem(index) {
+        if (confirm('Are you sure you want to delete this item?')) { state.inventory.splice(index, 1); renderStatefulModules(); }
+    }
+    function addPromotion() {
+        const nameInput = document.getElementById('campaign-name'), detailInput = document.getElementById('campaign-detail');
+        if (nameInput.value.trim() && detailInput.value.trim()) {
+            state.promotions.push({ name: nameInput.value.trim(), detail: detailInput.value.trim() });
+            nameInput.value = ''; detailInput.value = '';
+            renderStatefulModules();
+        } else alert('Please fill out both campaign name and details.');
+    }
+    function deletePromotion(index) {
+        if (confirm('Are you sure you want to delete this promotion?')) { state.promotions.splice(index, 1); renderStatefulModules(); }
+    }
+    function updateItemCost(itemName, element) {
+        const newCost = parseFloat(element.value);
+        if (!isNaN(newCost) && newCost >= 0) { state.itemCosts[itemName] = newCost; renderMenuIntelligence(Object.values(state.allOrders)); }
+        else element.value = state.itemCosts[itemName];
+    }
+    function addShoppingListItem() {
+        const nameInput = document.getElementById('shopping-item-name'), amountInput = document.getElementById('shopping-item-amount');
+        if (nameInput.value.trim() && amountInput.value.trim()) {
+            state.shoppingList.push({ item: nameInput.value.trim(), amount: amountInput.value.trim() });
+            nameInput.value = ''; amountInput.value = '';
+            renderStatefulModules();
+        }
+    }
+    function deleteShoppingListItem(index) { state.shoppingList.splice(index, 1); renderStatefulModules(); }
+    
+    // --- INITIALIZATION ---
+    function initApp() {
+        setupEventListeners();
+        listenToOrders();
+        navigateTo('dashboard');
+        renderAllPages();
+        setInterval(() => {
+            document.querySelectorAll('.timer').forEach(el => {
+                const ts = parseInt(el.dataset.timestamp, 10);
+                if (ts) el.textContent = formatTime((Date.now() - ts) / 1000);
+            });
+        }, 1000);
+        console.log("Chef Dashboard is running!");
+    }
+    
+    window.updateOrderStatus = updateOrderStatus;
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
