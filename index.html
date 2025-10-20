@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Krishna's Kitchen Command Center</title>
+  <title>Krishna's Command Center</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,8 +30,9 @@
             'krishna-text-primary': '#F4F4F5',
             'krishna-text-secondary': '#A1A1AA',
             'krishna-text-tertiary': '#71717A',
-            'krishna-brand': '#FBBF24',
-            'status-pending': '#FBBF24',
+            'krishna-brand': '#F4F4F5',
+            'krishna-brand-text': '#111111',
+            'status-pending': '#A1A1AA',
             'status-preparing': '#3B82F6',
             'status-ready': '#10B981',
             'status-completed': '#6B7280',
@@ -54,7 +55,7 @@
             },
             pulse: {
               '0%, 100%': { backgroundColor: 'transparent' },
-              '50%': { backgroundColor: 'rgba(251, 191, 36, 0.2)' },
+              '50%': { backgroundColor: 'rgba(244, 244, 245, 0.1)' },
             }
           }
         }
@@ -71,7 +72,7 @@
     [data-page] { display: none; }
     [data-page].active { display: block; }
     .nav-link.active { background-color: #27272A; color: #F4F4F5; }
-    .nav-link.active svg { color: #FBBF24; }
+    .nav-link.active svg { color: #F4F4F5; }
     .nav-link.pulse-once { animation: pulse 1.5s ease-in-out; }
 
     #heatmap-tooltip {
@@ -97,8 +98,15 @@
     <!-- Sidebar Navigation -->
     <nav class="w-64 flex-shrink-0 bg-krishna-surface border-r border-krishna-border flex flex-col">
         <div class="p-6 border-b border-krishna-border">
-            <h1 class="text-2xl font-bold">🍳 Krishna's Kitchen</h1>
+            <h1 class="text-2xl font-bold">Krishna's 🦚</h1>
             <p class="text-sm text-krishna-text-secondary">Command Center</p>
+            <div class="mt-3 flex items-center gap-2 text-xs text-krishna-text-tertiary font-medium">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                <span id="live-datetime"></span>
+            </div>
         </div>
         <div class="flex-grow p-4 space-y-2 overflow-y-auto">
             <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="dashboard">
@@ -117,6 +125,10 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
                 <span>Inventory</span>
             </a>
+            <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="staff">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                <span>Staff Management</span>
+            </a>
             <a href="#" class="nav-link flex items-center gap-3 px-4 py-2.5 rounded-lg text-krishna-text-secondary font-semibold transition-colors hover:bg-krishna-surface-2 hover:text-krishna-text-primary" data-page-target="customers">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 <span>Customers</span>
@@ -132,7 +144,7 @@
         </div>
         <div class="p-4 border-t border-krishna-border text-center">
             <p class="text-sm font-medium">Krishna's Restaurant</p>
-            <p class="text-xs text-krishna-text-tertiary">&copy; 2024. All rights reserved.</p>
+            <p class="text-xs text-krishna-text-tertiary">&copy; 2027. All rights reserved.</p>
         </div>
     </nav>
     
@@ -194,10 +206,56 @@
         <!-- Inventory Page -->
         <div id="inventory-page" data-page>
             <div class="p-6">
-                 <header class="mb-6 flex justify-between items-center"><div_><h2 class="text-3xl font-extrabold text-krishna-text-primary">Smart Inventory</h2><p class="text-krishna-text-secondary">Track ingredients and get low-stock alerts.</p></div_> <button onclick="showInventoryModal()" class="py-2 px-4 bg-krishna-brand text-krishna-bg font-semibold rounded-lg hover:opacity-90 transition-opacity">Add Ingredient</button></header>
+                 <header class="mb-6 flex justify-between items-center"><div_><h2 class="text-3xl font-extrabold text-krishna-text-primary">Smart Inventory</h2><p class="text-krishna-text-secondary">Track ingredients and get low-stock alerts.</p></div_> <button onclick="showInventoryModal()" class="py-2 px-4 bg-krishna-brand text-krishna-brand-text font-semibold rounded-lg hover:opacity-90 transition-opacity">Add Ingredient</button></header>
                 <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 animate-slide-in">
                     <div><h3 class="text-xl font-bold mb-4">Inventory Status</h3><div class="bg-krishna-surface/50 border border-krishna-border rounded-xl"><div class="overflow-y-auto max-h-96"><table class="w-full text-left"><thead class="text-xs text-krishna-text-secondary uppercase sticky top-0 bg-krishna-surface"><tr><th class="p-3">Ingredient</th><th class="p-3">Current Stock</th><th class="p-3">Status</th><th class="p-3 text-right">Actions</th></tr></thead><tbody id="inventory-table" class="divide-y divide-krishna-border"></tbody></table></div></div></div>
-                    <div><h3 class="text-xl font-bold mb-4">Predicted Shopping List</h3><div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><p class="text-sm text-krishna-text-secondary mb-3">Based on sales velocity for the upcoming weekend.</p><div id="shopping-list-items" class="space-y-2"></div><div class="mt-4 flex gap-2"><input type="text" id="shopping-item-name" placeholder="Item Name" class="flex-grow bg-krishna-surface-2 px-3 py-1.5 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none text-sm"><input type="text" id="shopping-item-amount" placeholder="Amount" class="w-24 bg-krishna-surface-2 px-3 py-1.5 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none text-sm"><button onclick="addShoppingListItem()" class="py-1.5 px-3 bg-krishna-brand text-krishna-bg font-semibold rounded-lg hover:opacity-90 transition-opacity text-sm">Add</button></div></div></div>
+                    <div><h3 class="text-xl font-bold mb-4">Predicted Shopping List</h3><div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><p class="text-sm text-krishna-text-secondary mb-3">Based on sales velocity for the upcoming weekend.</p><div id="shopping-list-items" class="space-y-2"></div><div class="mt-4 flex gap-2"><input type="text" id="shopping-item-name" placeholder="Item Name" class="flex-grow bg-krishna-surface-2 px-3 py-1.5 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none text-sm"><input type="text" id="shopping-item-amount" placeholder="Amount" class="w-24 bg-krishna-surface-2 px-3 py-1.5 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none text-sm"><button onclick="addShoppingListItem()" class="py-1.5 px-3 bg-krishna-brand text-krishna-brand-text font-semibold rounded-lg hover:opacity-90 transition-opacity text-sm">Add</button></div></div></div>
+                </section>
+            </div>
+        </div>
+        
+        <!-- Staff Management Page -->
+        <div id="staff-page" data-page>
+            <div class="p-6">
+                <header class="mb-6 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-3xl font-extrabold text-krishna-text-primary">Staff Management</h2>
+                        <p class="text-krishna-text-secondary">Schedule shifts, track attendance, and monitor performance.</p>
+                    </div>
+                    <button onclick="showStaffModal()" class="py-2 px-4 bg-krishna-brand text-krishna-brand-text font-semibold rounded-lg hover:opacity-90 transition-opacity">Add New Staff</button>
+                </header>
+                <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-slide-in">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">Staff Performance &amp; Actions</h3>
+                            <div class="bg-krishna-surface/50 border border-krishna-border rounded-xl">
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left">
+                                        <thead class="text-xs text-krishna-text-secondary uppercase">
+                                            <tr>
+                                                <th class="p-3">Staff Member</th>
+                                                <th class="p-3">Attendance</th>
+                                                <th class="p-3 text-center">Orders Handled</th>
+                                                <th class="p-3 text-center">Avg. Order Time</th>
+                                                <th class="p-3 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="staff-performance-table" class="divide-y divide-krishna-border">
+                                            <!-- JS will populate this -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">Live Status &amp; Controls</h3>
+                            <div id="live-attendance" class="bg-krishna-surface p-4 rounded-xl border border-krishna-border space-y-3">
+                                <!-- JS will populate this -->
+                            </div>
+                        </div>
+                    </div>
                 </section>
             </div>
         </div>
@@ -221,7 +279,7 @@
             <div class="p-6">
                  <header class="mb-6"><h2 class="text-3xl font-extrabold text-krishna-text-primary">Marketing & Promotions</h2><p class="text-krishna-text-secondary">Create campaigns and special offers to drive sales.</p></header>
                 <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-in">
-                    <div><h3 class="text-xl font-bold mb-4">Create a New Campaign</h3><div class="bg-krishna-surface p-6 rounded-xl border border-krishna-border space-y-4"><input id="campaign-name" type="text" placeholder="Campaign Name (e.g., Monday Madness)" class="w-full bg-krishna-surface-2 px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none"><textarea id="campaign-detail" placeholder="Offer Details (e.g., 20% off on all Paneer dishes)" class="w-full bg-krishna-surface-2 px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none h-24"></textarea><button onclick="addPromotion()" class="w-full py-2 px-4 bg-krishna-brand text-krishna-bg font-semibold rounded-lg hover:opacity-90 transition-opacity">Launch Campaign</button></div></div>
+                    <div><h3 class="text-xl font-bold mb-4">Create a New Campaign</h3><div class="bg-krishna-surface p-6 rounded-xl border border-krishna-border space-y-4"><input id="campaign-name" type="text" placeholder="Campaign Name (e.g., Monday Madness)" class="w-full bg-krishna-surface-2 px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none"><textarea id="campaign-detail" placeholder="Offer Details (e.g., 20% off on all Paneer dishes)" class="w-full bg-krishna-surface-2 px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none h-24"></textarea><button onclick="addPromotion()" class="w-full py-2 px-4 bg-krishna-brand text-krishna-brand-text font-semibold rounded-lg hover:opacity-90 transition-opacity">Launch Campaign</button></div></div>
                     <div><h3 class="text-xl font-bold mb-4">Active Promotions</h3><div id="active-promotions" class="bg-krishna-surface p-4 rounded-xl border border-krishna-border space-y-3"></div></div>
                 </section>
             </div>
@@ -272,45 +330,138 @@
                 </div>
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="hideInventoryModal()" class="py-2 px-4 bg-krishna-surface border border-krishna-border text-white font-semibold rounded-lg hover:bg-krishna-border transition-colors">Cancel</button>
-                    <button type="submit" class="py-2 px-4 bg-krishna-brand text-krishna-bg font-semibold rounded-lg hover:opacity-90 transition-opacity">Save</button>
+                    <button type="submit" class="py-2 px-4 bg-krishna-brand text-krishna-brand-text font-semibold rounded-lg hover:opacity-90 transition-opacity">Save</button>
                 </div>
             </form>
         </div>
     </div>
     
-    <div id="heatmap-tooltip"></div>
+  <!-- Staff Add/Edit Modal -->
+    <div id="staff-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-fade-in">
+        <div class="bg-krishna-surface-2 border border-krishna-border rounded-xl p-6 w-full max-w-md shadow-2xl animate-slide-in">
+            <h3 id="staff-modal-title" class="text-xl font-bold mb-4">Add New Staff</h3>
+            <form id="staff-form" onsubmit="event.preventDefault(); saveStaffMember();">
+                <input type="hidden" id="staff-id">
+                <div class="space-y-4">
+                    <div>
+                        <label for="staff-name" class="text-sm font-medium text-krishna-text-secondary">Staff Name</label>
+                        <input type="text" id="staff-name" required class="mt-1 w-full bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none">
+                    </div>
+                    <div>
+                        <label for="staff-avatar" class="text-sm font-medium text-krishna-text-secondary">Avatar URL</label>
+                        <input type="url" id="staff-avatar" placeholder="https://i.pravatar.cc/150?u=..." required class="mt-1 w-full bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none">
+                    </div>
+                    <div>
+                        <label for="staff-role" class="text-sm font-medium text-krishna-text-secondary">Role</label>
+                        <select id="staff-role" required class="mt-1 w-full bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none">
+                            <option value="Chef">Chef</option>
+                            <option value="Waiter">Waiter</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Sales">Sales</option>
+                            <option value="Accounts">Accounts</option>
+                            <option value="Owner">Owner</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Staff">General Staff</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="staff-base-salary" class="text-sm font-medium text-krishna-text-secondary">Base Daily Salary (₹)</label>
+                        <input type="number" id="staff-base-salary" required class="mt-1 w-full bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none">
+                    </div>
+                     <div>
+                        <label for="staff-per-order-bonus" class="text-sm font-medium text-krishna-text-secondary">Per-Order Bonus (₹)</label>
+                        <input type="number" id="staff-per-order-bonus" required class="mt-1 w-full bg-krishna-surface px-4 py-2 rounded-lg border border-krishna-border focus:ring-2 focus:ring-krishna-brand focus:outline-none">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="hideStaffModal()" class="py-2 px-4 bg-krishna-surface border border-krishna-border text-white font-semibold rounded-lg hover:bg-krishna-border transition-colors">Cancel</button>
+                    <button type="submit" class="py-2 px-4 bg-krishna-brand text-krishna-brand-text font-semibold rounded-lg hover:opacity-90 transition-opacity">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+  <!-- Staff Details Modal -->
+  <div id="staff-details-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-fade-in">
+    <div class="bg-krishna-surface-2 border border-krishna-border rounded-xl p-6 w-full max-w-md shadow-2xl animate-slide-in">
+        <div class="flex items-start justify-between">
+            <div>
+                <h3 id="staff-modal-name" class="text-xl font-bold">Staff Details</h3>
+                <p id="staff-modal-role" class="text-sm font-semibold text-krishna-brand -mt-1">Role</p>
+            </div>
+            <img id="staff-modal-avatar" src="" class="w-16 h-16 rounded-full border-2 border-krishna-border">
+        </div>
+        <hr class="border-t border-dashed border-krishna-border my-4">
+        <div class="space-y-3 text-sm">
+            <div class="flex justify-between items-center"><span class="text-krishna-text-secondary">Current Status:</span><span id="staff-modal-status" class="font-bold font-mono">Status</span></div>
+            <div class="flex justify-between items-center"><span class="text-krishna-text-secondary">Orders Handled Today:</span><span id="staff-modal-orders" class="font-bold font-mono">0</span></div>
+            <div class="flex justify-between items-center"><span class="text-krishna-text-secondary">Avg. Order Time:</span><span id="staff-modal-avg-time" class="font-bold font-mono">0m 0s</span></div>
+            <div class="flex justify-between items-center"><span class="text-krishna-text-secondary">Total Break Time:</span><span id="staff-modal-break-time" class="font-bold font-mono">0m 0s</span></div>
+            <div class="bg-krishna-surface p-3 rounded-lg mt-4">
+                <h4 class="font-semibold mb-2">Earnings Today</h4>
+                <div class="flex justify-between items-center"><span class="text-krishna-text-secondary">Base Salary:</span><span id="staff-modal-base-salary" class="font-mono">₹0.00</span></div>
+                <div class="flex justify-between items-center"><span class="text-krishna-text-secondary">Performance Bonus:</span><span id="staff-modal-bonus" class="font-mono">₹0.00</span></div>
+                <div class="flex justify-between items-center mt-2 pt-2 border-t border-krishna-border font-bold text-profit"><span class="text-base">Total Earnings:</span><span id="staff-modal-total-earnings" class="text-base">₹0.00</span></div>
+            </div>
+        </div>
+        <div class="flex justify-end mt-6">
+            <button type="button" onclick="hideStaffDetailsModal()" class="py-2 px-4 bg-krishna-brand text-krishna-brand-text font-semibold rounded-lg hover:opacity-90 transition-opacity">Close</button>
+        </div>
+    </div>
+  </div>
+    
+  <div id="heatmap-tooltip"></div>
 
   <script>
     // --- CONFIGURATION ---
+    const LOCAL_STORAGE_KEY = 'krishna-kitchen-state';
     const firebaseConfig = {
-  apiKey: "AIzaSyBiCK1asyca1Hbc_l_HW_z0a-NiCAKE9ps",
-  authDomain: "krishna-e9c59.firebaseapp.com",
-  databaseURL: "https://krishna-e9c59-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "krishna-e9c59",
-  storageBucket: "krishna-e9c59.firebasestorage.app",
-  messagingSenderId: "1048468387337",
-  appId: "1:1048468387337:web:95bd7281d40f8db4b02ad8",
-  measurementId: "G-RXF4SNS526"
-};
-    if (firebaseConfig.apiKey === "YOUR_API_KEY") { alert("Please replace the placeholder Firebase config in dashboard_index.html with your actual project credentials."); }
+      apiKey: "AIzaSyBiCK1asyca1Hbc_l_HW_z0a-NiCAKE9ps",
+      authDomain: "krishna-e9c59.firebaseapp.com",
+      databaseURL: "https://krishna-e9c59-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "krishna-e9c59",
+      storageBucket: "krishna-e9c59.firebasestorage.app",
+      messagingSenderId: "1048468387337",
+      appId: "1:1048468387337:web:95bd7281d40f8db4b02ad8",
+      measurementId: "G-RXF4SNS526"
+    };
+    if (firebaseConfig.apiKey.startsWith("AIzaSyB")) { console.warn("Using placeholder Firebase config. Please replace it in dashboard_index.html with your actual project credentials for a live environment."); }
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
     // --- STATE MANAGEMENT ---
+    function loadStateFromLocalStorage() {
+        try { const serializedState = localStorage.getItem(LOCAL_STORAGE_KEY); return serializedState === null ? {} : JSON.parse(serializedState); }
+        catch (e) { console.warn("Could not load state from local storage", e); return {}; }
+    }
+    function saveStateToLocalStorage() {
+        try {
+            const stateToSave = { inventory: state.inventory, itemCosts: state.itemCosts, shoppingList: state.shoppingList, promotions: state.promotions, feedback: state.feedback, staff: state.staff };
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+        } catch (e) { console.error("Could not save state to local storage", e); }
+    }
+    const savedState = loadStateFromLocalStorage();
     let state = {
         allOrders: {
             'mockorder1': { orderId: 'mockorder1', tableNumber: 3, status: 'completed', timestamp: Date.now() - 172800000, statusTimestamp: Date.now() - 172700000, items: [{name: 'Paneer Butter Masala', quantity: 1, price: 350}, {name: 'Butter Naan', quantity: 2, price: 70}], total: 490 },
             'mockorder2': { orderId: 'mockorder2', tableNumber: 5, status: 'completed', timestamp: Date.now() - 86400000, statusTimestamp: Date.now() - 86300000, items: [{name: 'Veg Biryani', quantity: 1, price: 320}], total: 352 },
-            'mockorder3': { orderId: 'mockorder3', tableNumber: 1, status: 'completed', timestamp: Date.now() - 200000, statusTimestamp: Date.now() - 100000, items: [{name: 'Dal Makhani', quantity: 2, price: 300}, {name: 'Garlic Naan', quantity: 4, price: 80}], total: 920 },
-            'mockorder4': { orderId: 'mockorder4', tableNumber: 8, status: 'completed', timestamp: Date.now() - 3600000, statusTimestamp: Date.now() - 3500000, items: [{name: 'Hara Bhara Kebab', quantity: 1, price: 220}, {name: 'Masala Chaas', quantity: 2, price: 80}], total: 380 },
+            'mockorder3': { orderId: 'mockorder3', tableNumber: 1, status: 'completed', timestamp: Date.now() - 200000, statusTimestamp: Date.now() - 100000, items: [{name: 'Dal Makhani', quantity: 2, price: 300}, {name: 'Garlic Naan', quantity: 4, price: 80}], total: 920, handledBy: 'staff1' },
+            'mockorder4': { orderId: 'mockorder4', tableNumber: 8, status: 'completed', timestamp: Date.now() - 3600000, statusTimestamp: Date.now() - 3500000, items: [{name: 'Hara Bhara Kebab', quantity: 1, price: 220}, {name: 'Masala Chaas', quantity: 2, price: 80}], total: 380, handledBy: 'staff2' },
         },
         activePage: 'dashboard',
         charts: {},
-        inventory: [ { name: 'Paneer', stock: '5 kg', status: 'OK' }, { name: 'Tomatoes', stock: '2 kg', status: 'Low' }, { name: 'Onions', stock: '15 kg', status: 'OK' }, { name: 'Lentils (Black)', stock: '8 kg', status: 'OK' }, { name: 'Basmati Rice', stock: '25 kg', status: 'OK' }, { name: 'All-Purpose Flour', stock: '1 kg', status: 'Critical' } ],
-        itemCosts: { 'Paneer Butter Masala': 120, 'Dal Makhani': 80, 'Veg Biryani': 95, 'Hara Bhara Kebab': 60, 'Gulab Jamun': 35, 'Butter Naan': 20, 'Garlic Naan': 25, 'Masala Chaas': 25 },
-        shoppingList: [ { item: 'Tomatoes', amount: '10 kg' }, { item: 'All-Purpose Flour', amount: '20 kg' }, { item: 'Cream', amount: '5 liters' } ],
-        promotions: [ { name: 'Weekend Bonanza', detail: '15% off on all Thalis' }, { name: 'Happy Hour', detail: 'Buy one get one free on Beverages (4 PM - 6 PM)' } ],
-        feedback: [ { rating: 5, comment: 'The Paneer Butter Masala was divine!', table: 3 }, { rating: 4, comment: 'A bit slow, but the food was worth the wait.', table: 7 }, { rating: 5, comment: 'Best Dal Makhani in town!', table: 2 } ],
+        inventory: savedState.inventory || [ { name: 'Paneer', stock: '5 kg', status: 'OK' }, { name: 'Tomatoes', stock: '2 kg', status: 'Low' }, { name: 'Onions', stock: '15 kg', status: 'OK' }, { name: 'Lentils (Black)', stock: '8 kg', status: 'OK' }, { name: 'Basmati Rice', stock: '25 kg', status: 'OK' }, { name: 'All-Purpose Flour', stock: '1 kg', status: 'Critical' } ],
+        itemCosts: savedState.itemCosts || { 'Paneer Butter Masala': 120, 'Dal Makhani': 80, 'Veg Biryani': 95, 'Hara Bhara Kebab': 60, 'Gulab Jamun': 35, 'Butter Naan': 20, 'Garlic Naan': 25, 'Masala Chaas': 25 },
+        shoppingList: savedState.shoppingList || [ { item: 'Tomatoes', amount: '10 kg' }, { item: 'All-Purpose Flour', amount: '20 kg' }, { item: 'Cream', amount: '5 liters' } ],
+        promotions: savedState.promotions || [ { name: 'Weekend Bonanza', detail: '15% off on all Thalis' }, { name: 'Happy Hour', detail: 'Buy one get one free on Beverages (4 PM - 6 PM)' } ],
+        feedback: savedState.feedback || [ { rating: 5, comment: 'The Paneer Butter Masala was divine!', table: 3 }, { rating: 4, comment: 'A bit slow, but the food was worth the wait.', table: 7 }, { rating: 5, comment: 'Best Dal Makhani in town!', table: 2 } ],
+        staff: savedState.staff || [
+            { id: 'staff1', name: 'Rohan Sharma', role: 'Chef', avatar: 'https://i.pravatar.cc/150?u=rohan', attendance: 'Absent', status: 'Off Duty', breakStartTime: null, totalBreakDuration: 0, ordersHandled: 0, totalOrderTime: 0, baseSalary: 500, perOrderBonus: 15 },
+            { id: 'staff2', name: 'Priya Patel', role: 'Waiter', avatar: 'https://i.pravatar.cc/150?u=priya', attendance: 'Absent', status: 'Off Duty', breakStartTime: null, totalBreakDuration: 0, ordersHandled: 0, totalOrderTime: 0, baseSalary: 500, perOrderBonus: 15 },
+            { id: 'staff3', name: 'Amit Singh', role: 'Manager', avatar: 'https://i.pravatar.cc/150?u=amit', attendance: 'Absent', status: 'Off Duty', breakStartTime: null, totalBreakDuration: 0, ordersHandled: 0, totalOrderTime: 0, baseSalary: 450, perOrderBonus: 18 },
+            { id: 'staff4', name: 'Sunita Rao', role: 'Chef', avatar: 'https://i.pravatar.cc/150?u=sunita', attendance: 'Absent', status: 'Off Duty', breakStartTime: null, totalBreakDuration: 0, ordersHandled: 0, totalOrderTime: 0, baseSalary: 450, perOrderBonus: 18 },
+        ],
     };
     const notificationAudio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3');
     
@@ -344,6 +495,7 @@
         renderAnalytics(orders);
         renderMenuIntelligence(orders);
         renderStatefulModules();
+        renderStaffPage();
         calculateAndRenderInsights(orders);
     }
     
@@ -434,6 +586,65 @@
         document.getElementById('customer-feedback').innerHTML = state.feedback.map(f => `<div class="bg-krishna-surface p-4 rounded-xl border border-krishna-border"><div class="flex justify-between items-center mb-1"><span class="font-semibold">Table #${f.table}</span><span class="text-yellow-400 font-bold">${'★'.repeat(f.rating)}${'☆'.repeat(5-f.rating)}</span></div><p class="text-sm text-krishna-text-secondary italic">"${f.comment}"</p></div>`).join('');
         document.getElementById('active-promotions').innerHTML = state.promotions.map((p, index) => `<div class="bg-krishna-surface-2 p-3 rounded-lg flex justify-between items-center"><div><p class="font-semibold text-sm text-krishna-brand">${p.name}</p><p class="text-xs text-krishna-text-secondary">${p.detail}</p></div><button onclick="deletePromotion(${index})" class="p-1 text-krishna-text-secondary hover:text-loss transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button></div>`).join('');
     }
+
+    function renderStaffPage() {
+        const performanceContainer = document.getElementById('staff-performance-table');
+        const attendanceContainer = document.getElementById('live-attendance');
+        const attendanceColors = { 'Present': 'text-green-400', 'Absent': 'text-gray-500' };
+        const statusColors = { 'On Duty': 'text-green-400', 'On Break': 'text-yellow-400', 'Off Duty': 'text-gray-500' };
+        
+        performanceContainer.innerHTML = state.staff.map(staff => {
+            const avgTime = staff.ordersHandled > 0 ? staff.totalOrderTime / staff.ordersHandled : 0;
+            return `
+                <tr>
+                    <td class="p-3">
+                        <div class="flex items-center gap-3">
+                            <img src="${staff.avatar}" class="w-10 h-10 rounded-full">
+                            <div>
+                                <span class="font-semibold">${staff.name}</span>
+                                <p class="text-xs text-krishna-text-secondary">${staff.role}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-3"><span class="font-bold ${attendanceColors[staff.attendance]}">${staff.attendance}</span></td>
+                    <td class="p-3 text-center font-mono">${staff.ordersHandled}</td>
+                    <td class="p-3 text-center font-mono">${formatTime(avgTime)}</td>
+                    <td class="p-3 text-right space-x-2">
+                       <button onclick="showStaffDetailsModal('${staff.id}')" class="py-1 px-3 bg-krishna-surface-2 border border-krishna-border text-sm text-krishna-text-primary font-semibold rounded-lg hover:bg-krishna-border transition-colors">Details</button>
+                       <button onclick="showStaffModal('${staff.id}')" class="p-1 text-krishna-text-secondary hover:text-krishna-brand transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></button>
+                       <button onclick="deleteStaffMember('${staff.id}')" class="p-1 text-krishna-text-secondary hover:text-loss transition-colors"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        attendanceContainer.innerHTML = state.staff.map(staff => {
+            const isPresent = staff.attendance === 'Present';
+            const isOnBreak = staff.status === 'On Break';
+            const breakDuration = isOnBreak && staff.breakStartTime ? ` (${formatTime((Date.now() - staff.breakStartTime) / 1000)})` : '';
+            
+            return `
+                <div class="bg-krishna-surface-2 p-3 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <img src="${staff.avatar}" class="w-8 h-8 rounded-full ${!isPresent ? 'grayscale' : ''}">
+                            <div>
+                                <p class="font-semibold text-sm">${staff.name}</p>
+                                <p class="text-xs ${statusColors[staff.status]} font-semibold">${staff.status}<span class="font-mono">${breakDuration}</span></p>
+                            </div>
+                        </div>
+                        <button onclick="toggleAttendance('${staff.id}')" class="py-1 px-3 text-xs font-semibold rounded-md ${isPresent ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}">${isPresent ? 'Mark Absent' : 'Mark Present'}</button>
+                    </div>
+                    ${isPresent ? `
+                    <div class="mt-2 pt-2 border-t border-krishna-border">
+                         <button onclick="toggleBreak('${staff.id}')" class="w-full py-1 text-xs font-semibold rounded-md ${isOnBreak ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${isOnBreak ? 'End Break' : 'Start Break'}</button>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
 
     function chartOptions(title, timeUnit = undefined) {
       return { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, title: { display: false }, tooltip: { backgroundColor: 'var(--krishna-surface-2)', titleColor: 'var(--krishna-text-primary)', bodyColor: 'var(--krishna-text-secondary)', displayColors: false, padding: 10, cornerRadius: 6 } }, scales: { y: { ticks: { color: 'var(--chart-text)' }, grid: { color: 'var(--chart-grid)' }, border: { color: 'var(--chart-border)' } }, x: { type: timeUnit ? 'time' : 'category', time: { unit: timeUnit }, ticks: { color: 'var(--chart-text)' }, grid: { display: false }, border: { color: 'var(--chart-border)' } } } };
@@ -577,8 +788,26 @@
     }
 
     function updateOrderStatus(orderId, newStatus) {
-      database.ref('orders/' + orderId).update({ status: newStatus, statusTimestamp: firebase.database.ServerValue.TIMESTAMP })
+      const presentStaff = state.staff.filter(s => s.attendance === 'Present' && s.status === 'On Duty');
+      let handledById = null;
+      if (presentStaff.length > 0) {
+        // Simple logic: assign to a random available staff member
+        handledById = presentStaff[Math.floor(Math.random() * presentStaff.length)].id;
+      }
+
+      database.ref('orders/' + orderId).update({ status: newStatus, statusTimestamp: firebase.database.ServerValue.TIMESTAMP, handledBy: handledById })
         .then(() => {
+          if (newStatus === 'completed' && handledById) {
+            const staffIndex = state.staff.findIndex(s => s.id === handledById);
+            if (staffIndex > -1) {
+              const order = state.allOrders[orderId];
+              const prepTime = (order.statusTimestamp - order.timestamp) / 1000;
+              state.staff[staffIndex].ordersHandled++;
+              state.staff[staffIndex].totalOrderTime += prepTime;
+              saveStateToLocalStorage();
+              renderStaffPage();
+            }
+          }
           if (newStatus === 'completed') {
             const historyLink = document.querySelector('.nav-link[data-page-target="history"]');
             if (historyLink) {
@@ -628,9 +857,10 @@
         if (index) state.inventory[parseInt(index)] = newItem; else state.inventory.push(newItem);
         hideInventoryModal();
         renderStatefulModules();
+        saveStateToLocalStorage();
     }
     function deleteInventoryItem(index) {
-        if (confirm('Are you sure you want to delete this item?')) { state.inventory.splice(index, 1); renderStatefulModules(); }
+        if (confirm('Are you sure you want to delete this item?')) { state.inventory.splice(index, 1); renderStatefulModules(); saveStateToLocalStorage(); }
     }
     function addPromotion() {
         const nameInput = document.getElementById('campaign-name'), detailInput = document.getElementById('campaign-detail');
@@ -638,14 +868,15 @@
             state.promotions.push({ name: nameInput.value.trim(), detail: detailInput.value.trim() });
             nameInput.value = ''; detailInput.value = '';
             renderStatefulModules();
+            saveStateToLocalStorage();
         } else alert('Please fill out both campaign name and details.');
     }
     function deletePromotion(index) {
-        if (confirm('Are you sure you want to delete this promotion?')) { state.promotions.splice(index, 1); renderStatefulModules(); }
+        if (confirm('Are you sure you want to delete this promotion?')) { state.promotions.splice(index, 1); renderStatefulModules(); saveStateToLocalStorage(); }
     }
     function updateItemCost(itemName, element) {
         const newCost = parseFloat(element.value);
-        if (!isNaN(newCost) && newCost >= 0) { state.itemCosts[itemName] = newCost; renderMenuIntelligence(Object.values(state.allOrders)); }
+        if (!isNaN(newCost) && newCost >= 0) { state.itemCosts[itemName] = newCost; renderMenuIntelligence(Object.values(state.allOrders)); saveStateToLocalStorage(); }
         else element.value = state.itemCosts[itemName];
     }
     function addShoppingListItem() {
@@ -654,9 +885,158 @@
             state.shoppingList.push({ item: nameInput.value.trim(), amount: amountInput.value.trim() });
             nameInput.value = ''; amountInput.value = '';
             renderStatefulModules();
+            saveStateToLocalStorage();
         }
     }
-    function deleteShoppingListItem(index) { state.shoppingList.splice(index, 1); renderStatefulModules(); }
+    function deleteShoppingListItem(index) { state.shoppingList.splice(index, 1); renderStatefulModules(); saveStateToLocalStorage(); }
+    
+    // --- STAFF MANAGEMENT FUNCTIONS ---
+    function showStaffModal(staffId = null) {
+        const modal = document.getElementById('staff-modal');
+        const form = document.getElementById('staff-form');
+        const title = document.getElementById('staff-modal-title');
+        form.reset();
+
+        if (staffId) {
+            const staff = state.staff.find(s => s.id === staffId);
+            if (!staff) return;
+            title.textContent = 'Edit Staff Member';
+            document.getElementById('staff-id').value = staff.id;
+            document.getElementById('staff-name').value = staff.name;
+            document.getElementById('staff-avatar').value = staff.avatar;
+            document.getElementById('staff-role').value = staff.role;
+            document.getElementById('staff-base-salary').value = staff.baseSalary;
+            document.getElementById('staff-per-order-bonus').value = staff.perOrderBonus;
+        } else {
+            title.textContent = 'Add New Staff';
+            document.getElementById('staff-id').value = '';
+        }
+        modal.classList.remove('hidden');
+    }
+
+    function hideStaffModal() {
+        document.getElementById('staff-modal').classList.add('hidden');
+    }
+
+    function saveStaffMember() {
+        const staffId = document.getElementById('staff-id').value;
+        const name = document.getElementById('staff-name').value;
+        const avatar = document.getElementById('staff-avatar').value;
+        const role = document.getElementById('staff-role').value;
+        const baseSalary = parseFloat(document.getElementById('staff-base-salary').value);
+        const perOrderBonus = parseFloat(document.getElementById('staff-per-order-bonus').value);
+
+        if (!name || !avatar || !role || isNaN(baseSalary) || isNaN(perOrderBonus)) {
+            alert('Please fill out all fields correctly.');
+            return;
+        }
+
+        if (staffId) { // Editing existing staff
+            const staffIndex = state.staff.findIndex(s => s.id === staffId);
+            if (staffIndex > -1) {
+                state.staff[staffIndex] = { ...state.staff[staffIndex], name, avatar, role, baseSalary, perOrderBonus };
+            }
+        } else { // Adding new staff
+            const newStaff = {
+                id: 'staff' + Date.now(),
+                name,
+                avatar,
+                role,
+                attendance: 'Absent',
+                status: 'Off Duty',
+                breakStartTime: null,
+                totalBreakDuration: 0,
+                ordersHandled: 0,
+                totalOrderTime: 0,
+                baseSalary,
+                perOrderBonus,
+            };
+            state.staff.push(newStaff);
+        }
+        hideStaffModal();
+        renderStaffPage();
+        saveStateToLocalStorage();
+    }
+
+    function deleteStaffMember(staffId) {
+        if (confirm('Are you sure you want to delete this staff member? This cannot be undone.')) {
+            const staffIndex = state.staff.findIndex(s => s.id === staffId);
+            if (staffIndex > -1) {
+                state.staff.splice(staffIndex, 1);
+                renderStaffPage();
+                saveStateToLocalStorage();
+            }
+        }
+    }
+    
+    function toggleAttendance(staffId) {
+        const staff = state.staff.find(s => s.id === staffId);
+        if (!staff) return;
+        if (staff.attendance === 'Present') {
+            staff.attendance = 'Absent';
+            staff.status = 'Off Duty';
+            if (staff.breakStartTime) { // End break if they are marked absent
+                staff.totalBreakDuration += Date.now() - staff.breakStartTime;
+                staff.breakStartTime = null;
+            }
+        } else {
+            staff.attendance = 'Present';
+            staff.status = 'On Duty';
+        }
+        renderStaffPage();
+        saveStateToLocalStorage();
+    }
+    
+    function toggleBreak(staffId) {
+        const staff = state.staff.find(s => s.id === staffId);
+        if (!staff || staff.attendance === 'Absent') return;
+        
+        if (staff.status === 'On Break') {
+            staff.status = 'On Duty';
+            staff.totalBreakDuration += Date.now() - staff.breakStartTime;
+            staff.breakStartTime = null;
+        } else if (staff.status === 'On Duty') {
+            staff.status = 'On Break';
+            staff.breakStartTime = Date.now();
+        }
+        renderStaffPage();
+        saveStateToLocalStorage();
+    }
+
+    function showStaffDetailsModal(staffId) {
+        const staff = state.staff.find(s => s.id === staffId);
+        if (!staff) return;
+        
+        const modal = document.getElementById('staff-details-modal');
+        const statusColors = { 'On Duty': 'text-green-400', 'On Break': 'text-yellow-400', 'Off Duty': 'text-gray-500' };
+        
+        document.getElementById('staff-modal-name').textContent = staff.name;
+        document.getElementById('staff-modal-role').textContent = staff.role;
+        document.getElementById('staff-modal-avatar').src = staff.avatar;
+        
+        const statusEl = document.getElementById('staff-modal-status');
+        statusEl.textContent = staff.status;
+        statusEl.className = `font-bold font-mono ${statusColors[staff.status] || 'text-gray-400'}`;
+        
+        document.getElementById('staff-modal-orders').textContent = staff.ordersHandled;
+        const avgTime = staff.ordersHandled > 0 ? staff.totalOrderTime / staff.ordersHandled : 0;
+        document.getElementById('staff-modal-avg-time').textContent = formatTime(avgTime);
+        
+        let currentBreak = staff.breakStartTime ? Date.now() - staff.breakStartTime : 0;
+        document.getElementById('staff-modal-break-time').textContent = formatTime((staff.totalBreakDuration + currentBreak) / 1000);
+        
+        const bonus = staff.ordersHandled * staff.perOrderBonus;
+        const totalEarnings = staff.attendance === 'Present' ? staff.baseSalary + bonus : 0;
+        document.getElementById('staff-modal-base-salary').textContent = formatCurrency(staff.attendance === 'Present' ? staff.baseSalary : 0);
+        document.getElementById('staff-modal-bonus').textContent = formatCurrency(bonus);
+        document.getElementById('staff-modal-total-earnings').textContent = formatCurrency(totalEarnings);
+        
+        modal.classList.remove('hidden');
+    }
+    
+    function hideStaffDetailsModal() {
+        document.getElementById('staff-details-modal').classList.add('hidden');
+    }
     
     // --- INITIALIZATION ---
     function initApp() {
@@ -669,11 +1049,32 @@
                 const ts = parseInt(el.dataset.timestamp, 10);
                 if (ts) el.textContent = formatTime((Date.now() - ts) / 1000);
             });
+            document.getElementById('live-datetime').textContent = new Date().toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+            if(state.activePage === 'staff') {
+                renderStaffPage();
+            }
         }, 1000);
         console.log("Chef Dashboard is running!");
     }
     
     window.updateOrderStatus = updateOrderStatus;
+    window.showInventoryModal = showInventoryModal;
+    window.hideInventoryModal = hideInventoryModal;
+    window.saveInventoryItem = saveInventoryItem;
+    window.deleteInventoryItem = deleteInventoryItem;
+    window.addPromotion = addPromotion;
+    window.deletePromotion = deletePromotion;
+    window.updateItemCost = updateItemCost;
+    window.addShoppingListItem = addShoppingListItem;
+    window.deleteShoppingListItem = deleteShoppingListItem;
+    window.toggleAttendance = toggleAttendance;
+    window.toggleBreak = toggleBreak;
+    window.showStaffDetailsModal = showStaffDetailsModal;
+    window.hideStaffDetailsModal = hideStaffDetailsModal;
+    window.showStaffModal = showStaffModal;
+    window.hideStaffModal = hideStaffModal;
+    window.saveStaffMember = saveStaffMember;
+    window.deleteStaffMember = deleteStaffMember;
     document.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
