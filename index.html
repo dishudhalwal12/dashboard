@@ -417,22 +417,25 @@
     // --- CONFIGURATION ---
     const LOCAL_STORAGE_KEY = 'krishna-kitchen-state';
     const firebaseConfig = {
-      apiKey: "AIzaSyBiCK1asyca1Hbc_l_HW_z0a-NiCAKE9ps",
-      authDomain: "krishna-e9c59.firebaseapp.com",
-      databaseURL: "https://krishna-e9c59-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "krishna-e9c59",
-      storageBucket: "krishna-e9c59.firebasestorage.app",
-      messagingSenderId: "1048468387337",
-      appId: "1:1048468387337:web:95bd7281d40f8db4b02ad8",
-      measurementId: "G-RXF4SNS526"
-    };
-    if (firebaseConfig.apiKey.startsWith("AIzaSyB")) { console.warn("Using placeholder Firebase config. Please replace it in dashboard_index.html with your actual project credentials for a live environment."); }
+  apiKey: "AIzaSyBiCK1asyca1Hbc_l_HW_z0a-NiCAKE9ps",
+  authDomain: "krishna-e9c59.firebaseapp.com",
+  databaseURL: "https://krishna-e9c59-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "krishna-e9c59",
+  storageBucket: "krishna-e9c59.firebasestorage.app",
+  messagingSenderId: "1048468387337",
+  appId: "1:1048468387337:web:95bd7281d40f8db4b02ad8",
+  measurementId: "G-RXF4SNS526"
+};
+    if (firebaseConfig.apiKey.includes("YOUR_")) { console.warn("Using placeholder Firebase config. Please replace it in dashboard_index.html with your actual project credentials for a live environment."); }
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
     // --- STATE MANAGEMENT ---
     let indianVoice = null;
     let isInitialOrderLoad = true;
+    let announcementQueue = [];
+    let isSpeaking = false;
+
     function loadStateFromLocalStorage() {
         try { const serializedState = localStorage.getItem(LOCAL_STORAGE_KEY); return serializedState === null ? {} : JSON.parse(serializedState); }
         catch (e) { console.warn("Could not load state from local storage", e); return {}; }
@@ -475,14 +478,12 @@
     function loadIndianVoice() {
         const setVoice = () => {
             const voices = speechSynthesis.getVoices();
-            // Prioritize Indian English for a professional, clear accent.
             indianVoice = voices.find(voice => voice.lang === 'en-IN' && voice.name.includes('Google')) || 
                           voices.find(voice => voice.lang === 'en-IN');
             if (indianVoice) { 
                 console.log("Indian English voice loaded:", indianVoice.name); 
             } else { 
                 console.warn("Could not find an en-IN voice. Using system default English voice."); 
-                // Fallback to any available English voice if Indian English is not found.
                 indianVoice = voices.find(voice => voice.lang.startsWith('en-'));
             }
         };
@@ -490,37 +491,54 @@
         setVoice();
     }
 
+    function processSpeechQueue() {
+      if (isSpeaking || announcementQueue.length === 0) {
+        return;
+      }
+      isSpeaking = true;
+      const announcementText = announcementQueue.shift();
+      const utterance = new SpeechSynthesisUtterance(announcementText);
+
+      if (indianVoice) {
+        utterance.voice = indianVoice;
+      } else {
+        utterance.lang = 'en-IN';
+      }
+      utterance.pitch = 1;
+      utterance.rate = 1;
+      utterance.volume = 1;
+
+      utterance.onend = () => {
+        isSpeaking = false;
+        processSpeechQueue();
+      };
+      
+      utterance.onerror = (event) => {
+        console.error('SpeechSynthesisUtterance.onerror', event);
+        isSpeaking = false;
+        processSpeechQueue(); // Try the next one
+      };
+      
+      speechSynthesis.speak(utterance);
+    }
+
     function announceOrder(order) {
-        if (!order || !order.items || !('speechSynthesis' in window)) return;
-        speechSynthesis.cancel();
+        if (!order || !order.items || !('speechSynthesis'in window)) return;
         
         const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
-        const itemsText = order.items.map(item => `${item.quantity} ${item.name}`).join(', ');
-        
-        let announcement;
+        const itemsText = order.items.map(item => `${item.quantity} ${item.name}`).join(', and ');
+        let announcementText;
 
-        // Priority for high-value orders
-        if (order.total > 1500) { 
-            announcement = `Priority order. Table number ${order.tableNumber}. Items: ${itemsText}. Immediate attention required.`;
-        }
-        // Special announcement for large orders
-        else if (totalQuantity > 6) { 
-            announcement = `Large order received. Table number ${order.tableNumber}. Total ${totalQuantity} items: ${itemsText}.`;
-        }
-        // Default professional notification
-        else {
-            announcement = `New order received. Table number ${order.tableNumber}. Items: ${itemsText}.`;
+        if (order.total > 1100) {
+            announcementText = `Attention, high priority order for table number ${order.tableNumber}. Items are: ${itemsText}. Please prioritize.`;
+        } else if (totalQuantity > 4) {
+            announcementText = `New order for table number ${order.tableNumber}. There are ${totalQuantity} items: ${itemsText}.`;
+        } else {
+            announcementText = `Order for table number ${order.tableNumber}. Items: ${itemsText}.`;
         }
 
-        const utterance = new SpeechSynthesisUtterance(announcement);
-        if (indianVoice) { 
-            utterance.voice = indianVoice; 
-        }
-        // Set language to English (India) for appropriate accent if available
-        utterance.lang = 'en-IN';
-        utterance.pitch = 1; // Neutral pitch
-        utterance.rate = 1; // Normal rate
-        speechSynthesis.speak(utterance);
+        announcementQueue.push(announcementText);
+        processSpeechQueue();
     }
 
     // --- RENDER FUNCTIONS ---
@@ -832,13 +850,13 @@
         const data = snapshot.val();
         if (!data) return;
 
-        // After initial load, check for new orders to announce
         if (!isInitialOrderLoad) {
           const newOrderIds = Object.keys(data).filter(orderId => !state.allOrders.hasOwnProperty(orderId));
           if (newOrderIds.length > 0) {
             notificationAudio.play().catch(e => console.error("Audio playback failed:", e));
-            // Announce the first new order in the batch to avoid chaos
-            announceOrder(data[newOrderIds[0]]); 
+            newOrderIds.forEach(orderId => {
+              announceOrder(data[orderId]);
+            });
           }
         }
         
