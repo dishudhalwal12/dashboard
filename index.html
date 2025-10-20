@@ -431,6 +431,8 @@
     const database = firebase.database();
 
     // --- STATE MANAGEMENT ---
+    let indianVoice = null;
+    let isInitialOrderLoad = true;
     function loadStateFromLocalStorage() {
         try { const serializedState = localStorage.getItem(LOCAL_STORAGE_KEY); return serializedState === null ? {} : JSON.parse(serializedState); }
         catch (e) { console.warn("Could not load state from local storage", e); return {}; }
@@ -465,10 +467,61 @@
     };
     const notificationAudio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3');
     
-    // --- UTILITY FUNCTIONS ---
+    // --- UTILITY & TTS FUNCTIONS ---
     const formatTime = s => isNaN(s) || s < 0 ? '...' : `${Math.floor(s/60)}m ${Math.floor(s%60).toString().padStart(2,'0')}s`;
     const formatCurrency = amount => `₹${amount.toFixed(2)}`;
     const formatFullTimestamp = ts => new Date(ts).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+
+    function loadIndianVoice() {
+        const setVoice = () => {
+            const voices = speechSynthesis.getVoices();
+            // Prioritize Indian English for a professional, clear accent.
+            indianVoice = voices.find(voice => voice.lang === 'en-IN' && voice.name.includes('Google')) || 
+                          voices.find(voice => voice.lang === 'en-IN');
+            if (indianVoice) { 
+                console.log("Indian English voice loaded:", indianVoice.name); 
+            } else { 
+                console.warn("Could not find an en-IN voice. Using system default English voice."); 
+                // Fallback to any available English voice if Indian English is not found.
+                indianVoice = voices.find(voice => voice.lang.startsWith('en-'));
+            }
+        };
+        if (speechSynthesis.onvoiceschanged !== undefined) { speechSynthesis.onvoiceschanged = setVoice; }
+        setVoice();
+    }
+
+    function announceOrder(order) {
+        if (!order || !order.items || !('speechSynthesis' in window)) return;
+        speechSynthesis.cancel();
+        
+        const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
+        const itemsText = order.items.map(item => `${item.quantity} ${item.name}`).join(', ');
+        
+        let announcement;
+
+        // Priority for high-value orders
+        if (order.total > 1500) { 
+            announcement = `Priority order. Table number ${order.tableNumber}. Items: ${itemsText}. Immediate attention required.`;
+        }
+        // Special announcement for large orders
+        else if (totalQuantity > 6) { 
+            announcement = `Large order received. Table number ${order.tableNumber}. Total ${totalQuantity} items: ${itemsText}.`;
+        }
+        // Default professional notification
+        else {
+            announcement = `New order received. Table number ${order.tableNumber}. Items: ${itemsText}.`;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(announcement);
+        if (indianVoice) { 
+            utterance.voice = indianVoice; 
+        }
+        // Set language to English (India) for appropriate accent if available
+        utterance.lang = 'en-IN';
+        utterance.pitch = 1; // Neutral pitch
+        utterance.rate = 1; // Normal rate
+        speechSynthesis.speak(utterance);
+    }
 
     // --- RENDER FUNCTIONS ---
     function createOrderCardHTML(order) {
@@ -777,13 +830,26 @@
     function listenToOrders() {
       database.ref('orders').on('value', (snapshot) => {
         const data = snapshot.val();
-        if (Object.keys(state.allOrders).length > 0 && data && Object.keys(data).length > Object.keys(state.allOrders).length) {
+        if (!data) return;
+
+        // After initial load, check for new orders to announce
+        if (!isInitialOrderLoad) {
+          const newOrderIds = Object.keys(data).filter(orderId => !state.allOrders.hasOwnProperty(orderId));
+          if (newOrderIds.length > 0) {
             notificationAudio.play().catch(e => console.error("Audio playback failed:", e));
+            // Announce the first new order in the batch to avoid chaos
+            announceOrder(data[newOrderIds[0]]); 
+          }
         }
+        
         if (data) {
           state.allOrders = { ...state.allOrders, ...data };
         }
         renderAllPages();
+
+        if (isInitialOrderLoad) {
+            isInitialOrderLoad = false;
+        }
       });
     }
 
@@ -1040,6 +1106,7 @@
     
     // --- INITIALIZATION ---
     function initApp() {
+        loadIndianVoice();
         setupEventListeners();
         listenToOrders();
         navigateTo('dashboard');
